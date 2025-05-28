@@ -1,0 +1,30 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema#",
+    "type": "object",
+    "properties": {
+        "mods": {"$ref": "#/$defs/mods_type"}
+    },
+    "required": ["mods"],
+    "unevaluatedProperties": false,
+    "$defs": {
+        "mods_type": {
+            "type": "array",
+            "minItems": 0,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "author": {"type": "string"},
+                    "package": {"type": "string"},
+                    "version": {"type": "string"}
+                },
+                "required": [
+                    "author",
+                    "package",
+                    "version"
+                ],
+                "unevaluatedProperties": false
+            },
+            "unevaluatedItems": false
+        }
+    }
+}

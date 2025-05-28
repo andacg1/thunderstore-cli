@@ -1,0 +1,25 @@
+{
+  "$schema": "./mods-schema.json",
+  "mods": [
+    {
+      "author": "Vapok",
+      "package": "AdventureBackpacks",
+      "version": "1.7.10"
+    },
+    {
+      "author": "Marlthon",
+      "package": "Cats",
+      "version": "0.2.3"
+    },
+    {
+      "author": "MSchmoecker",
+      "package": "MultiUserChest",
+      "version": "0.6.1"
+    },
+    {
+      "author": "TastyChickenLegs",
+      "package": "AutomaticFuel",
+      "version": "1.4.3"
+    }
+  ]
+}
