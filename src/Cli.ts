@@ -7,7 +7,7 @@ const outputFolderName = Options.directory("output").pipe(
   Options.withAlias("o"),
   Options.withDefault("/home/steam/valheim/BepInEx/plugins"),
 );
-const dependenciesFile = Options.directory("deps").pipe(
+const dependenciesFile = Options.file("deps").pipe(
   Options.withAlias("d"),
   Options.withDefault("/home/steam/valheim/mods.json"),
 );

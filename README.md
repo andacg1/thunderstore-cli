@@ -1,7 +1,59 @@
-# Effect CLI Application Template
+# Thunderstore Mod Manager
 
-This template provides a solid foundation for building scalable and maintainable command-line applications with Effect. 
+## Installation
+### Building Manually
+1. Clone the repo
+```bash
+git clone https://github.com/andacg1/thunderstore-server-manager.git
+```
 
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Create a package archive
+```bash
+npm run pack
+```
+
+4. Upload the `thunderstore-cli-0.0.1.tgz` archive to your server
+5. Install the package globally on your server
+```bash
+npm i -g thunderstore-cli-0.0.1.tgz
+```
+6. Create a dependency file (e.g. `mods.json`) on your server
+```json
+{
+  "mods": [
+    {
+      "author": "Vapok",
+      "package": "AdventureBackpacks",
+      "version": "1.7.10"
+    },
+    {
+      "author": "Marlthon",
+      "package": "Cats",
+      "version": "0.1.3"
+    },
+    {
+      "author": "MSchmoecker",
+      "package": "MultiUserChest",
+      "version": "0.6.1"
+    }
+  ]
+}
+```
+
+## Usage
+1. Run `thunderstore-cli`
+```bash
+thunderstore-cli --deps /home/steam/valheim/mods.json -o /home/steam/valheim/BepInEx/plugins
+```
+
+---
+
+# Contributing
 ## Running Code
 
 This template leverages [tsx](https://tsx.is) to allow execution of TypeScript files via NodeJS as if they were written in plain JavaScript.
