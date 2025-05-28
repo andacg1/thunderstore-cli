@@ -1,6 +1,5 @@
 import { Console, Data, Effect, pipe } from "effect";
 import { UnknownException } from "effect/Cause";
-import { isNull } from "effect/Predicate";
 import { Manifest } from "./schemas/Manifest.js";
 import { Package, PackageSchema } from "./schemas/Package.js";
 import { Url } from "./schemas/Url.js";
@@ -36,19 +35,23 @@ const getPackageManifest = (
 ) =>
   Effect.gen(function* () {
     const result = yield* Effect.tryPromise(async () => {
-      const dir = await fs.readdir(outputFolderName, { withFileTypes: true });
+      const packageFolderName = path.join(
+        outputFolderName,
+        `${author}-${packageName}`,
+      );
+      const dir = await fs.readdir(packageFolderName, { withFileTypes: true });
       for await (const file of dir) {
-        console.log(file.name);
-        if (file.name.endsWith("manifest.json")) {
-          const rawData = await fs.readFile(
-            path.join(file.parentPath, file.name),
-            {
-              encoding: "utf8",
-            },
-          );
-          const manifest: Manifest = JSON.parse(rawData);
-          return manifest;
+        if (!file.name.endsWith("manifest.json")) {
+          continue;
         }
+        const rawData = await fs.readFile(
+          path.join(file.parentPath, file.name),
+          {
+            encoding: "utf8",
+          },
+        );
+        const manifest: Manifest = JSON.parse(rawData);
+        return manifest;
       }
       return null;
     });
@@ -114,7 +117,7 @@ const updateDependenciesFile = (
     yield* Effect.tryPromise(async () =>
       fs.writeFile(
         dependenciesFilePath,
-        JSON.stringify(modDependencies, null, "\t\n"),
+        JSON.stringify(modDependencies, null, "\t"),
       ),
     );
   });
@@ -175,6 +178,12 @@ const getPackagesToUpdate = (
             )
           ) {
             packagesToUpdate.push(packageData);
+          } else {
+            yield* Console.log(
+              chalk.cyan(
+                `${packageData.full_name} is already on the latest version (v${packageData.latest.version_number})`,
+              ),
+            );
           }
         }),
       ),
