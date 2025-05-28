@@ -1,5 +1,4 @@
 {
-  "$schema": "./mods-schema.json",
   "mods": [
     {
       "author": "Vapok",
@@ -9,7 +8,7 @@
     {
       "author": "Marlthon",
       "package": "Cats",
-      "version": "0.2.3"
+      "version": "0.1.3"
     },
     {
       "author": "MSchmoecker",
@@ -23,3 +22,4 @@
     }
   ]
 }
+

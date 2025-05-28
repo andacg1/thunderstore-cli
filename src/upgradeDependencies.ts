@@ -1,3 +1,5 @@
+import { Console, Effect, pipe } from "effect";
+import { UnknownException } from "effect/Cause";
 import { Package, PackageSchema } from "./schemas/Package.js";
 import { Url } from "./schemas/Url.js";
 import { ModDependency, Dependencies } from "./types.js";
@@ -7,85 +9,149 @@ import { ReadableStream } from "stream/web";
 import path from "path";
 import decompress from "decompress";
 
-import fs from 'node:fs/promises'
+import fs from "node:fs/promises";
+import chalk from "chalk";
 
-async function getPackageListing(
+const getPackageListing = (
   author: string,
   packageName: string,
-): Promise<Package> {
-  const resp = await fetch(
-    `https://thunderstore.io/api/experimental/package/${author}/${packageName}/`,
+): Effect.Effect<Package, UnknownException, never> =>
+  Effect.tryPromise(async () => {
+    const resp = await fetch(
+      `https://thunderstore.io/api/experimental/package/${author}/${packageName}/`,
+    );
+    return PackageSchema.parse(await resp.json());
+  });
+
+const download = (url: Url, path: string) =>
+  Effect.tryPromise(async () => {
+    const response = await fetch(url);
+    const body = response.body as ReadableStream;
+    const stream = Readable.fromWeb(body);
+    return await fs.writeFile(path, stream);
+  });
+
+const readDependencies = (
+  filePath: string,
+): Effect.Effect<Dependencies, UnknownException, never> =>
+  pipe(
+    Effect.tryPromise(async () => {
+      let dependencies: Dependencies = {
+        mods: [],
+      };
+      try {
+        const rawData = await fs.readFile(filePath, {
+          encoding: "utf8",
+        });
+        dependencies = JSON.parse(rawData);
+      } catch (err) {
+        console.error(err);
+      }
+      return dependencies;
+    }),
+    Effect.tap((dependencies) =>
+      Console.log(
+        dependencies.mods.reduce(
+          (prev, curr) =>
+            `${prev}${curr.author}-${curr.package}-${curr.version}\n`,
+          "",
+        ),
+      ),
+    ),
   );
-  return PackageSchema.parse(await resp.json());
-}
 
-const download = async (url: Url, path: string): Promise<void> => {
-  const response = await fetch(url)
-  const body = response.body as ReadableStream
-  const stream = Readable.fromWeb(body)
-  await fs.writeFile(path, stream)
-}
+const getOutdatedPackages = (
+  dependencies: ModDependency[],
+): Effect.Effect<Package[], UnknownException, never> =>
+  Effect.gen(function* () {
+    const outdatedPackages: Package[] = [];
+    yield* Effect.all(
+      dependencies.map((dependency) =>
+        Effect.gen(function* () {
+          const packageData = yield* getPackageListing(
+            dependency.author,
+            dependency.package,
+          );
+          if (
+            isOutdatedVersion(
+              dependency.version,
+              packageData.latest.version_number,
+            )
+          ) {
+            outdatedPackages.push(packageData);
+          }
+        }),
+      ),
+    );
+    return outdatedPackages;
+  });
 
-const readDependencies = async (filePath: string | undefined): Promise<Dependencies> => {
-  let dependencies: Dependencies = {
-    mods: []
-  };
-  try {
-    const rawData = await fs.readFile(filePath || "./mods.json", { encoding: "utf8" });
-    dependencies = JSON.parse(rawData);
-    console.log(dependencies);
-  } catch (err) {
-    console.error(err);
-  }
-  return dependencies
-}
+const decompressPackage = (
+  outputFilePath: string,
+  outputFolderName: string,
+  packageFolderName: string,
+): Effect.Effect<void, UnknownException, never> =>
+  Effect.tryPromise(async () =>
+    decompress(
+      outputFilePath,
+      `${outputFolderName}/${packageFolderName}`,
+    ).finally(async () => {
+      return await fs.rm(outputFilePath);
+    }),
+  );
 
-const getOutdatedPackages = async (dependencies: ModDependency[]): Promise<Package[]> => {
-  const outdatedPackages: Package[] = [];
-  for await (const dependency of dependencies) {
-    const packageData = await getPackageListing(dependency.author, dependency.package);
-    console.log(packageData);
-    if (isOutdatedVersion(dependency.version, packageData.latest.version_number)) {
-      outdatedPackages.push(packageData);
-    }
-  }
-  return outdatedPackages
-}
-
-const upgradePackage = async (modPackage: Package, outputFolderName: string | undefined) => {
+const upgradePackage = (
+  modPackage: Package,
+  outputFolderName: string,
+): Effect.Effect<void, UnknownException, never> => {
   const packageFolderName = `${modPackage.namespace}-${modPackage.name}`;
   const outputFilePath = path.join(
     process.cwd(),
     `${packageFolderName}-${modPackage.latest.version_number}.zip`,
   );
-  // Download updates for outdated mods
-  await download(`https://gcdn.thunderstore.io/live/repository/packages/${packageFolderName}-${modPackage.latest.version_number}.zip`, outputFilePath)
 
-  // Extract zip into server plugin directory
-  await decompress(outputFilePath, `${outputFolderName || 'dist'}/${packageFolderName}`)
-    .then((files) => {
-      console.log(files);
-    })
-    .catch((error) => {
-      console.log(error);
-    }).finally(async () => {
-      await fs.rm(outputFilePath)
-    })
-}
+  return Effect.all([
+    // Download updates for outdated mods
+    download(
+      `https://gcdn.thunderstore.io/live/repository/packages/${packageFolderName}-${modPackage.latest.version_number}.zip`,
+      outputFilePath,
+    ),
+
+    // Extract zip into server plugin directory
+    decompressPackage(outputFilePath, outputFolderName, packageFolderName),
+    Console.log(
+      chalk.green(
+        `Updated ${packageFolderName} to v${modPackage.latest.version_number}`,
+      ),
+    ),
+  ]);
+};
 
 export type UpgradeDependenciesOptions = {
-  dependenciesJson?: string
-  outputFolderName?: string
-}
-export async function upgradeDependencies({dependenciesJson, outputFolderName}: UpgradeDependenciesOptions = {}) {
-  // 1. Read list of mods and their versions
-  const modDependencies = await readDependencies(dependenciesJson)
-  // 2. Check for updates
-  const outdatedMods = await getOutdatedPackages(modDependencies.mods)
-  // 3. Upgrade outdated dependencies
-  for await (const modPackage of outdatedMods) {
-    await upgradePackage(modPackage, outputFolderName)
-  }
-}
-
-upgradeDependencies();
+  dependenciesFile: string;
+  outputFolderName?: string;
+};
+export const upgradeDependencies = (
+  {
+    dependenciesFile = "./mods.json",
+    outputFolderName = "dist",
+  }: UpgradeDependenciesOptions = {
+    dependenciesFile: "./mods.json",
+    outputFolderName: "dist",
+  },
+) =>
+  Effect.gen(function* () {
+    // 1. Read list of mods and their versions
+    const modDependencies = yield* readDependencies(dependenciesFile);
+    // 2. Check for updates
+    const outdatedPackages = yield* getOutdatedPackages(modDependencies.mods);
+    // 3. Upgrade outdated dependencies
+    yield* Effect.all(
+      outdatedPackages.map((modPackage) =>
+        upgradePackage(modPackage, outputFolderName),
+      ),
+      {
+        concurrency: 3,
+      },
+    );
+  });
