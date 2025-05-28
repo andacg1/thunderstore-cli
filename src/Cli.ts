@@ -28,5 +28,5 @@ const command = Command.make(
 
 export const run = Command.run(command, {
   name: "Thunderstore Server Manager",
-  version: "0.0.1",
+  version: "0.0.2",
 });

@@ -1,6 +1,6 @@
 {
   "name": "thunderstore-cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "packageManager": "npm@11.1.0",
   "license": "MIT",
