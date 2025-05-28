@@ -1,8 +1,10 @@
-import { Console, Effect, pipe } from "effect";
+import { Console, Data, Effect, pipe } from "effect";
 import { UnknownException } from "effect/Cause";
+import { isNull } from "effect/Predicate";
+import { Manifest } from "./schemas/Manifest.js";
 import { Package, PackageSchema } from "./schemas/Package.js";
 import { Url } from "./schemas/Url.js";
-import { ModDependency, Dependencies } from "./types.js";
+import { ModDependency, Dependencies, Version } from "./types.js";
 import { isOutdatedVersion } from "./util.js";
 import { Readable } from "stream";
 import { ReadableStream } from "stream/web";
@@ -21,6 +23,100 @@ const getPackageListing = (
       `https://thunderstore.io/api/experimental/package/${author}/${packageName}/`,
     );
     return PackageSchema.parse(await resp.json());
+  });
+
+class FileNotFoundError extends Data.TaggedError("FileNotFound")<{
+  message: string;
+}> {}
+
+const getPackageManifest = (
+  author: string,
+  packageName: string,
+  outputFolderName: string,
+) =>
+  Effect.gen(function* () {
+    const result = yield* Effect.tryPromise(async () => {
+      const dir = await fs.readdir(outputFolderName, { withFileTypes: true });
+      for await (const file of dir) {
+        console.log(file.name);
+        if (file.name.endsWith("manifest.json")) {
+          const rawData = await fs.readFile(
+            path.join(file.parentPath, file.name),
+            {
+              encoding: "utf8",
+            },
+          );
+          const manifest: Manifest = JSON.parse(rawData);
+          return manifest;
+        }
+      }
+      return null;
+    });
+    if (result === null) {
+      return yield* Effect.fail(
+        new FileNotFoundError({
+          message: `Could not find manifest.json for ${author}-${packageName}`,
+        }),
+      );
+    }
+    return result;
+  });
+
+const getCurrentVersions = (
+  mods: ModDependency[],
+  outputFolderName: string,
+): Effect.Effect<ModDependency[], never, never> =>
+  pipe(
+    mods.map((mod) =>
+      pipe(
+        getPackageManifest(mod.author, mod.package, outputFolderName),
+        (prev) =>
+          Effect.match(prev, {
+            onSuccess: (value) => ({
+              version: value.version_number as Version,
+              author: mod.author,
+              package: mod.package,
+            }),
+            onFailure: (e) => ({
+              version: "0.0.0" as Version,
+              author: mod.author,
+              package: mod.package,
+            }),
+          }),
+      ),
+    ),
+    (prev) => Effect.all(prev),
+  );
+
+const updateDependenciesFile = (
+  dependenciesFilePath: string,
+  packagesToUpdate: Package[],
+) =>
+  Effect.gen(function* () {
+    const modDependencies = yield* readDependencies(dependenciesFilePath);
+    const updatedPackageMap = new Map<string, Version>();
+    for (const packageToUpdate of packagesToUpdate) {
+      updatedPackageMap.set(
+        `${packageToUpdate.namespace}-${packageToUpdate.name}`,
+        packageToUpdate.latest.version_number,
+      );
+    }
+    for (const mod of modDependencies.mods) {
+      const latestVersion = updatedPackageMap.get(
+        `${mod.author}-${mod.package}`,
+      );
+      if (!latestVersion) {
+        continue;
+      }
+      mod.version = latestVersion;
+    }
+
+    yield* Effect.tryPromise(async () =>
+      fs.writeFile(
+        dependenciesFilePath,
+        JSON.stringify(modDependencies, null, "\t\n"),
+      ),
+    );
   });
 
 const download = (url: Url, path: string) =>
@@ -60,11 +156,11 @@ const readDependencies = (
     ),
   );
 
-const getOutdatedPackages = (
+const getPackagesToUpdate = (
   dependencies: ModDependency[],
 ): Effect.Effect<Package[], UnknownException, never> =>
   Effect.gen(function* () {
-    const outdatedPackages: Package[] = [];
+    const packagesToUpdate: Package[] = [];
     yield* Effect.all(
       dependencies.map((dependency) =>
         Effect.gen(function* () {
@@ -78,26 +174,25 @@ const getOutdatedPackages = (
               packageData.latest.version_number,
             )
           ) {
-            outdatedPackages.push(packageData);
+            packagesToUpdate.push(packageData);
           }
         }),
       ),
     );
-    return outdatedPackages;
+    return packagesToUpdate;
   });
 
 const decompressPackage = (
-  outputFilePath: string,
+  zipFilePath: string,
   outputFolderName: string,
   packageFolderName: string,
 ): Effect.Effect<void, UnknownException, never> =>
   Effect.tryPromise(async () =>
-    decompress(
-      outputFilePath,
-      `${outputFolderName}/${packageFolderName}`,
-    ).finally(async () => {
-      return await fs.rm(outputFilePath);
-    }),
+    decompress(zipFilePath, `${outputFolderName}/${packageFolderName}`).finally(
+      async () => {
+        return await fs.rm(zipFilePath);
+      },
+    ),
   );
 
 const upgradePackage = (
@@ -128,30 +223,37 @@ const upgradePackage = (
 };
 
 export type UpgradeDependenciesOptions = {
-  dependenciesFile: string;
+  dependenciesFilePath: string;
   outputFolderName?: string;
 };
 export const upgradeDependencies = (
   {
-    dependenciesFile = "./mods.json",
+    dependenciesFilePath = "./mods.json",
     outputFolderName = "dist",
   }: UpgradeDependenciesOptions = {
-    dependenciesFile: "./mods.json",
+    dependenciesFilePath: "./mods.json",
     outputFolderName: "dist",
   },
 ) =>
   Effect.gen(function* () {
     // 1. Read list of mods and their versions
-    const modDependencies = yield* readDependencies(dependenciesFile);
+    const modDependencies = yield* readDependencies(dependenciesFilePath);
+    // 2. Get installed versions
+    const currentVersions = yield* getCurrentVersions(
+      modDependencies.mods,
+      outputFolderName,
+    );
     // 2. Check for updates
-    const outdatedPackages = yield* getOutdatedPackages(modDependencies.mods);
+    const packagesToUpdate = yield* getPackagesToUpdate(currentVersions);
     // 3. Upgrade outdated dependencies
     yield* Effect.all(
-      outdatedPackages.map((modPackage) =>
+      packagesToUpdate.map((modPackage) =>
         upgradePackage(modPackage, outputFolderName),
       ),
       {
         concurrency: 3,
       },
     );
+    // 4. Update dependencies file
+    yield* updateDependenciesFile(dependenciesFilePath, packagesToUpdate);
   });

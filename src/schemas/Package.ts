@@ -7,7 +7,7 @@ export const CommunityListingSchema = z.object({
   has_nsfw_content: z.boolean(),
   categories: z.array(z.string()),
   community: z.string(),
-  review_status: ReviewStatusSchema,
+  review_status: z.string(),
 });
 export type CommunityListing = z.infer<typeof CommunityListingSchema>;
 

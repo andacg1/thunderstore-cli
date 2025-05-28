@@ -19,6 +19,156 @@
       "author": "TastyChickenLegs",
       "package": "AutomaticFuel",
       "version": "1.4.3"
+    },
+    {
+      "author": "Azumatt",
+      "package": "Official_BepInEx_ConfigurationManager",
+      "version": "18.4.0"
+    },
+    {
+      "author": "ValheimModding",
+      "package": "Jotunn",
+      "version": "2.25.0"
+    },
+    {
+      "package": "BetterArchery",
+      "version": "1.9.81",
+      "author": "ishid4"
+    },
+    {
+      "package": "TargetPortal",
+      "version": "1.2.0",
+      "author": "Smoothbrain"
+    },
+    {
+      "package": "Jewelcrafting",
+      "version": "1.5.36",
+      "author": "Smoothbrain"
+    },
+    {
+      "package": "Server_devcommands",
+      "version": "1.97.0",
+      "author": "JereKuusela"
+    },
+    {
+      "package": "AzuExtendedPlayerInventory",
+      "version": "1.4.9",
+      "author": "Azumatt"
+    },
+    {
+      "package": "AzuCraftyBoxes",
+      "version": "1.8.4",
+      "author": "Azumatt"
+    },
+    {
+      "package": "Quick_Stack_Store_Sort_Trash_Restock",
+      "version": "1.4.13",
+      "author": "Goldenrevolver"
+    },
+    {
+      "package": "PlantEasily",
+      "version": "2.0.3",
+      "author": "Advize"
+    },
+    {
+      "package": "Mining",
+      "version": "1.1.5",
+      "author": "Smoothbrain"
+    },
+    {
+      "package": "AzuAutoStore",
+      "version": "3.0.8",
+      "author": "Azumatt"
+    },
+    {
+      "package": "FloatingItems",
+      "version": "1.0.0",
+      "author": "castix"
+    },
+    {
+      "package": "OdinArchitect",
+      "version": "1.5.0",
+      "author": "OdinPlus"
+    },
+    {
+      "package": "ItemStacksRewrite",
+      "version": "1.0.2",
+      "author": "Fortis"
+    },
+    {
+      "package": "Gravekeeper",
+      "version": "2.2.0",
+      "author": "mtnewton"
+    },
+    {
+      "package": "Pet_Protection",
+      "version": "0.2.0",
+      "author": "zebediah49"
+    },
+    {
+      "package": "ServerSideMap",
+      "version": "1.3.13",
+      "author": "Mydayyy"
+    },
+    {
+      "package": "CarryMeMaster",
+      "version": "1.1.0",
+      "author": "CookieMilk"
+    },
+    {
+      "package": "Sailing",
+      "version": "1.1.7",
+      "author": "Smoothbrain"
+    },
+    {
+      "package": "AdvancedTerrainModifiers",
+      "version": "1.4.1",
+      "author": "Searica"
+    },
+    {
+      "package": "SmoothSave",
+      "version": "1.0.5",
+      "author": "Smoothbrain"
+    },
+    {
+      "package": "Ranching",
+      "version": "1.1.3",
+      "author": "Smoothbrain"
+    },
+    {
+      "package": "Soulcatcher_JC_KG_Additions",
+      "version": "4.5.9",
+      "author": "KGvalheim"
+    },
+    {
+      "package": "PlantEverything",
+      "version": "1.19.1",
+      "author": "Advize"
+    },
+    {
+      "package": "Farming",
+      "version": "2.2.1",
+      "author": "Smoothbrain"
+    },
+    {
+      "package": "Groups",
+      "version": "1.2.9",
+      "author": "Smoothbrain"
+    },
+    {
+      "package": "CreatureLevelAndLootControl",
+      "version": "4.6.4",
+      "author": "Smoothbrain"
+    },
+    {
+      "package": "CrystalLights",
+      "version": "1.1.5",
+      "author": "OdinPlus"
+    },
+    {
+      "package": "EpicJewels",
+      "version": "0.9.16",
+      "author": "MidnightMods"
     }
   ]
 }

@@ -18,7 +18,7 @@ const command = Command.make(
   ({ outputFolderName, dependenciesFile }) => {
     Effect.runPromise(
       upgradeDependencies({
-        dependenciesFile,
+        dependenciesFilePath: dependenciesFile,
         outputFolderName,
       }),
     );

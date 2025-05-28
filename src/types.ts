@@ -2,7 +2,7 @@ export type Version = `${number}.${number}.${number}`;
 export type ModDependency = {
   author: string;
   package: string;
-  version: `${number}.${number}.${number}`;
+  version: Version;
 };
 
 export type Dependencies = {
