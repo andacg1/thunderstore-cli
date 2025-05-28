@@ -7,7 +7,7 @@
   "description": "A basic Effect CLI application",
   "repository": {
     "type": "git",
-    "url": "https://github.com/andacg1/thunderstore-server-manager"
+    "url": "https://github.com/andacg1/thunderstore-cli"
   },
   "publishConfig": {
     "access": "public",
